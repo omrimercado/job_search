@@ -51,3 +51,45 @@ jobs:
         git diff --staged --quiet || git commit -m "Update job search results - $(date +'%Y-%m-%d %H:%M')"
         git push || true
       continue-on-error: true
+
+    - name: Extract summary for notification
+      id: summary
+      run: |
+        # Extract priority counts from the HTML
+        HIGH=$(grep -o 'priority-HIGH' jobs_output.html | wc -l)
+        MED=$(grep -o 'priority-MED' jobs_output.html | wc -l)
+        LOW=$(grep -o 'priority-LOW' jobs_output.html | wc -l)
+        echo "high=$HIGH" >> $GITHUB_OUTPUT
+        echo "med=$MED" >> $GITHUB_OUTPUT
+        echo "low=$LOW" >> $GITHUB_OUTPUT
+        echo "date=$(date +'%Y-%m-%d %H:%M')" >> $GITHUB_OUTPUT
+
+    - name: Send email notification
+      if: always()
+      uses: dawidd6/action-send-mail@v3
+      with:
+        server_address: smtp.gmail.com
+        server_port: 587
+        username: ${{ secrets.EMAIL_USERNAME }}
+        password: ${{ secrets.EMAIL_PASSWORD }}
+        subject: "🎯 Daily Job Search Results - ${{ steps.summary.outputs.date }}"
+        to: ${{ secrets.EMAIL_TO }}
+        from: Job Search Bot
+        body: |
+          Your daily job search has completed!
+
+          📊 Results Summary:
+          - 🟢 HIGH Priority: ${{ steps.summary.outputs.high }} jobs
+          - 🟡 MED Priority: ${{ steps.summary.outputs.med }} jobs
+          - 🔴 LOW Priority: ${{ steps.summary.outputs.low }} jobs
+
+          📥 View Results:
+          1. Go to: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          2. Download the artifact "job-search-results-${{ github.run_number }}"
+          3. Open jobs_output.html in your browser
+
+          Or pull the latest changes from the repository to see the updated jobs_output.html file.
+
+          Good luck with your job search! 🚀
+        attachments: jobs_output.html
+      continue-on-error: true
