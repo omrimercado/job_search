@@ -1,0 +1,53 @@
+name: Automated Job Search
+
+on:
+  schedule:
+    # Runs every 24 hours at 8:00 AM UTC (11:00 AM Israel time)
+    - cron: '0 8 * * *'
+  workflow_dispatch: # Allows manual trigger from GitHub UI
+
+jobs:
+  search-jobs:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run job search
+      env:
+        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        JOB_KEYWORDS: ${{ vars.JOB_KEYWORDS || 'Junior Software Engineer,Junior Full Stack Developer' }}
+        JOB_LOCATION: ${{ vars.JOB_LOCATION || 'Israel' }}
+        JOB_LIMIT: ${{ vars.JOB_LIMIT || '50' }}
+        YOUR_SKILLS: ${{ vars.YOUR_SKILLS }}
+        YOUR_EXPERIENCE_YEARS: ${{ vars.YOUR_EXPERIENCE_YEARS || '0' }}
+        YOUR_PROFILE: ${{ vars.YOUR_PROFILE }}
+      run: |
+        python main.py --once
+
+    - name: Upload HTML results
+      uses: actions/upload-artifact@v4
+      with:
+        name: job-search-results-${{ github.run_number }}
+        path: jobs_output.html
+        retention-days: 30
+
+    - name: Commit and push results (optional)
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add jobs_output.html || true
+        git diff --staged --quiet || git commit -m "Update job search results - $(date +'%Y-%m-%d %H:%M')"
+        git push || true
+      continue-on-error: true

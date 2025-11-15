@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  job-search:
+    build: .
+    container_name: job-search-automation
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - LINKEDIN_EMAIL=${LINKEDIN_EMAIL}
+      - LINKEDIN_PASSWORD=${LINKEDIN_PASSWORD}
+      - JOB_KEYWORDS=${JOB_KEYWORDS}
+      - JOB_LOCATION=${JOB_LOCATION}
+      - JOB_LIMIT=${JOB_LIMIT}
+      - YOUR_SKILLS=${YOUR_SKILLS}
+      - YOUR_EXPERIENCE_YEARS=${YOUR_EXPERIENCE_YEARS}
+      - YOUR_PROFILE=${YOUR_PROFILE}
+    volumes:
+      - ./output:/app/output
+      - ./jobs_output.html:/app/jobs_output.html
+    restart: unless-stopped
